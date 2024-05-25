@@ -3,11 +3,13 @@ using blog_website_api.Data;
 using blog_website_api.Models;
 using MongoDB.Driver;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace blog_website_api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly MongoDbContext _context;
@@ -20,6 +22,7 @@ namespace blog_website_api.Controllers
 
         // GET: api/users/all
         [HttpGet("all")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> GetAllUsers()
         {
             var users = await _context.Users.Find(_ => true).ToListAsync();
@@ -29,13 +32,18 @@ namespace blog_website_api.Controllers
 
         // GET: api/users with pagination
         // to use it in Postman http://localhost:5000/api/users?page=2&pageSize=5
+        /// <summary>
+        /// Retrieves all users with pagination.
+        /// </summary>
+        /// <param name="page">The page number of the pagination.</param>
+        /// <param name="pageSize">The number of items per page.</param>
+        /// <returns>A list of users with pagination information.</returns>
         [HttpGet]
         public async Task<IActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
             var usersQuery = _context.Users.Find(_ => true);
             var totalItems = await usersQuery.CountDocumentsAsync();
             var users = await usersQuery.Skip((page - 1) * pageSize).Limit(pageSize).ToListAsync();
-
             var response = new
             {
                 TotalItems = totalItems,
@@ -51,6 +59,7 @@ namespace blog_website_api.Controllers
 
         // GET: api/users/5
         [HttpGet("{id}")]
+        [Authorize(Roles = "ADMIN,USER")]
         public async Task<IActionResult> GetUser(string id)
         {
             var user = await _context.Users.Find<User>(u => u.Id == id).FirstOrDefaultAsync();
